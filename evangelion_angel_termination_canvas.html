@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NERV TACTICAL // PATTERN BLUE TERMINATION</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #05010a;
+      font-family: 'Share Tech Mono', monospace;
+      color: #ff9d3b;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+    /* Subtle CRT scanline and vignette overlay */
+    .crt-overlay {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, transparent 58%, rgba(0, 0, 0, 0.72) 100%),
+        repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.14) 0px,
+          rgba(0, 0, 0, 0.14) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+      z-index: 10;
+    }
+    .nerv-title {
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.16em;
+    }
+    .hud-box {
+      background: rgba(14, 4, 8, 0.62);
+      border: 1px solid rgba(255, 110, 40, 0.42);
+      box-shadow: 0 0 18px rgba(255, 60, 20, 0.15), inset 0 0 12px rgba(255, 100, 30, 0.08);
+      backdrop-filter: blur(4px);
+    }
+    .hud-btn {
+      background: rgba(255, 72, 20, 0.14);
+      border: 1px solid rgba(255, 128, 48, 0.65);
+      color: #ffae52;
+      transition: all 0.16s ease;
+    }
+    .hud-btn:hover {
+      background: rgba(255, 85, 25, 0.34);
+      border-color: #ffd28a;
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(255, 110, 35, 0.55);
+    }
+    .hud-btn:active {
+      transform: scale(0.97);
+    }
+    .hud-btn.active {
+      background: rgba(255, 55, 25, 0.42);
+      border-color: #ff5533;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(255, 60, 30, 0.6);
+    }
+    .hazard-stripe {
+      background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 120, 30, 0.75),
+        rgba(255, 120, 30, 0.75) 6px,
+        rgba(20, 4, 4, 0.85) 6px,
+        rgba(20, 4, 4, 0.85) 12px
+      );
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 110, 40, 0.22);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #ff9d3b;
+      border: 1px solid #fff;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    @keyframes blinkAlert {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0.25; }
+    }
+    .blink-fast {
+      animation: blinkAlert 0.65s infinite;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main Generative Art Canvas -->
+  <canvas id="evaCanvas"></canvas>
+
+  <!-- CRT Scanline & Vignette Overlay -->
+  <div class="crt-overlay"></div>
+
+  <!-- NERV Tactical HUD Overlay -->
+  <div id="hudLayer" class="fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+    <!-- Top HUD Row -->
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <!-- Top-Left Telemetry -->
+      <div class="hud-box rounded px-3 py-2 sm:px-4 sm:py-2.5 pointer-events-auto max-w-[260px] sm:max-w-xs">
+        <div class="flex items-center justify-between gap-3 border-b border-orange-500/30 pb-1 mb-1.5">
+          <span class="nerv-title text-xs sm:text-sm font-black text-red-500 tracking-widest">MAGI // 01-MELCHIOR</span>
+          <span id="statusBadge" class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-blue-500/25 border border-blue-400 text-blue-300 font-bold">
+            PATTERN: BLUE
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] sm:text-xs leading-tight">
+          <span class="text-orange-300/70">BLOOD TYPE:</span>
+          <span id="bloodTypeVal" class="text-cyan-300 font-bold text-right">BLUE [CONFIRMED]</span>
+          <span class="text-orange-300/70">TARGET STATUS:</span>
+          <span id="targetStatusVal" class="text-amber-300 font-bold text-right">AT-FIELD ACTIVE</span>
+          <span class="text-orange-300/70">LCL DENSITY:</span>
+          <span id="lclDensityVal" class="text-orange-200 text-right">98.42%</span>
+          <span class="text-orange-300/70">SYNC RATIO:</span>
+          <span id="syncRatioVal" class="text-red-400 font-bold text-right">400.0%</span>
+        </div>
+      </div>
+
+      <!-- Top-Center Warning Banner (Flashes during detonation) -->
+      <div id="emergencyBanner" class="hidden md:flex flex-col items-center hud-box rounded px-5 py-1.5 border-red-500/70">
+        <div class="hazard-stripe w-full h-1.5 rounded-sm mb-1"></div>
+        <div id="emergencyText" class="nerv-title text-xs sm:text-sm font-extrabold text-red-500 tracking-widest">
+          TARGET ANGEL // NEUTRALIZATION SEQUENCE
+        </div>
+        <div class="hazard-stripe w-full h-1.5 rounded-sm mt-1"></div>
+      </div>
+
+      <!-- Top-Right Harmonic Sine Monitor & Audio Toggle -->
+      <div class="hud-box rounded px-3 py-2 sm:px-4 sm:py-2.5 pointer-events-auto flex flex-col items-end">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-[10px] sm:text-xs text-orange-300/80">HARMONICS // ψ-WAVE</span>
+          <button id="audioToggleBtn" class="hud-btn rounded px-2 py-0.5 text-[11px] sm:text-xs font-bold cursor-pointer">
+            AUDIO: OFF
+          </button>
+        </div>
+        <canvas id="waveCanvas" width="160" height="36" class="rounded border border-orange-500/30 bg-black/50"></canvas>
+      </div>
+    </div>
+
+    <!-- Bottom HUD Row & Interactive Controls -->
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <!-- Bottom-Left Coordinates & Stage Indicator -->
+      <div class="hud-box rounded px-3 py-2 text-[11px] sm:text-xs pointer-events-auto hidden sm:block">
+        <div class="text-orange-400/80">GEOFRONT SECTOR: <span class="text-amber-200">TOKYO-3 // ASHINOKO</span></div>
+        <div class="text-orange-400/80">PHASE STATE: <span id="phaseLabel" class="text-red-400 font-bold">01 // BARRIER RESONANCE</span></div>
+        <div class="text-[10px] text-orange-300/50 mt-0.5">CLICK ANYWHERE ON SEA TO DETONATE TARGET</div>
+      </div>
+
+      <!-- Bottom-Right Interactive Command Console -->
+      <div class="hud-box rounded px-3 py-2.5 sm:px-4 sm:py-3 pointer-events-auto flex flex-wrap items-center gap-2 sm:gap-3 ml-auto">
+        <button id="detonateBtn" class="hud-btn rounded px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold tracking-wider cursor-pointer">
+          ⚡ TERMINATE ANGEL
+        </button>
+        <button id="autoLoopBtn" class="hud-btn active rounded px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold cursor-pointer">
+          AUTO-LOOP: ON
+        </button>
+        <div class="flex items-center gap-2 px-1">
+          <label for="intensitySlider" class="text-[11px] text-orange-300/80 whitespace-nowrap">IMPACT</label>
+          <input id="intensitySlider" type="range" min="0.5" max="1.6" step="0.05" value="1.0" class="w-16 sm:w-20" />
+        </div>
+        <button id="hudToggleBtn" class="hud-btn rounded px-2.5 py-1.5 text-xs cursor-pointer" title="Toggle Minimal HUD">
+          HUD
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * EVANGELION // ANGEL DEATH & CRUCIFORM EXPLOSION GENERATIVE ARTWORK
+     * Single-file HTML5 Canvas + Procedural Web Audio Synthesis
+     */
+
+    // =========================================================================
+    // 1. PROCEDURAL WEB AUDIO ENGINE (Sub-bass, Choir Swell, AT Shatter, Boom)
+    // =========================================================================
+    class EvaAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = false;
+        this.masterGain = null;
+        this.droneOsc1 = null;
+        this.droneOsc2 = null;
+        this.droneGain = null;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.42;
+        this.masterGain.connect(this.ctx.destination);
+
+        // Continuous apocalyptic sub-bass & ominous choir pad
+        this.droneGain = this.ctx.createGain();
+        this.droneGain.gain.value = 0.0;
+        this.droneGain.connect(this.masterGain);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 280;
+        filter.connect(this.droneGain);
+
+        this.droneOsc1 = this.ctx.createOscillator();
+        this.droneOsc1.type = 'sawtooth';
+        this.droneOsc1.frequency.value = 55.0; // A1 sub-drone
+        this.droneOsc1.connect(filter);
+
+        this.droneOsc2 = this.ctx.createOscillator();
+        this.droneOsc2.type = 'triangle';
+        this.droneOsc2.frequency.value = 82.41; // E2 fifth harmonic
+        this.droneOsc2.connect(filter);
+
+        this.droneOsc1.start();
+        this.droneOsc2.start();
+      }
+
+      toggle() {
+        if (!this.ctx) this.init();
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        this.enabled = !this.enabled;
+        const now = this.ctx.currentTime;
+        this.droneGain.gain.cancelScheduledValues(now);
+        this.droneGain.gain.setTargetAtTime(this.enabled ? 0.22 : 0.0, now, 0.35);
+        return this.enabled;
+      }
+
+      // Crystalline high-frequency AT-Field fracture chime
+      playATFieldShatter() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const freqs = [1318.5, 1760.0, 2349.3, 3135.9, 4186.0];
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f + Math.random() * 60, now + idx * 0.025);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.65, now + 0.55 + idx * 0.04);
+
+          gain.gain.setValueAtTime(0.001, now + idx * 0.025);
+          gain.gain.linearRampToValueAtTime(0.14 / (idx * 0.4 + 1), now + idx * 0.025 + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65 + idx * 0.04);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(now + idx * 0.025);
+          osc.stop(now + 0.75 + idx * 0.04);
+        });
+      }
+
+      // Massive Cruciform Explosion Boom + Heavenly Choir Swell
+      playCruciformDetonation(intensity = 1.0) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // 1. Sub-bass seismic drop
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(135, now);
+        subOsc.frequency.exponentialRampToValueAtTime(24, now + 2.4);
+
+        subGain.gain.setValueAtTime(0.75 * Math.min(intensity, 1.3), now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.8);
+
+        subOsc.connect(subGain);
+        subGain.connect(this.masterGain);
+        subOsc.start(now);
+        subOsc.stop(now + 2.9);
+
+        // 2. Filtered White Noise Explosion Roar
+        const bufferSize = this.ctx.sampleRate * 3.0;
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.setValueAtTime(2400, now);
+        noiseFilter.frequency.exponentialRampToValueAtTime(110, now + 2.7);
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.65 * Math.min(intensity, 1.3), now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.9);
+
+        whiteNoise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+        whiteNoise.start(now);
+        whiteNoise.stop(now + 3.0);
+
+        // 3. Ethereal Evangelion Choir Chord Swell (D minor9 / A major angelic resolution)
+        const choirFreqs = [220.0, 277.18, 329.63, 440.0, 554.37, 659.25];
+        choirFreqs.forEach((freq) => {
+          const osc = this.ctx.createOscillator();
+          const cGain = this.ctx.createGain();
+          const lpf = this.ctx.createBiquadFilter();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + 0.08);
+          osc.detune.value = (Math.random() - 0.5) * 14;
+
+          lpf.type = 'lowpass';
+          lpf.frequency.setValueAtTime(650, now + 0.08);
+          lpf.frequency.linearRampToValueAtTime(1600, now + 1.2);
+          lpf.frequency.exponentialRampToValueAtTime(420, now + 3.6);
+
+          cGain.gain.setValueAtTime(0.0001, now + 0.08);
+          cGain.gain.linearRampToValueAtTime(0.065, now + 0.75);
+          cGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
+
+          osc.connect(lpf);
+          lpf.connect(cGain);
+          cGain.connect(this.masterGain);
+
+          osc.start(now + 0.08);
+          osc.stop(now + 3.9);
+        });
+      }
+    }
+
+    const audioEngine = new EvaAudioEngine();
+
+    // =========================================================================
+    // 2. CANVAS & STATE INITIALIZATION
+    // =========================================================================
+    const canvas = document.getElementById('evaCanvas');
+    const ctx = canvas.getContext('2d');
+    const waveCanvas = document.getElementById('waveCanvas');
+    const waveCtx = waveCanvas.getContext('2d');
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Interactive parameters & simulation state
+    const state = {
+      time: 0,
+      autoLoop: true,
+      intensity: 1.0,
+      hudVisible: true,
+      // Sequence phases:
+      // 'charging' -> AT Field builds & resonates
+      // 'shattering' -> AT Field fractures into geometric shards
+      // 'detonating' -> Giant Cruciform Explosion + Shockwaves + LCL Surge
+      // 'afterglow' -> Pillar fades slowly, embers & LCL ripples linger
+      phase: 'charging',
+      phaseTimer: 0,
+      epicenterX: width * 0.5,
+      epicenterY: height * 0.62, // Horizon line level
+      shakeMagnitude: 0,
+      flashAlpha: 0,
+      crossProgress: 0,
+      crossAlpha: 0,
+      atFieldCharge: 0,
+      angelCorePulse: 0,
+      shatterTriggered: false
+    };
+
+    // Entity collections
+    let shards = [];
+    let shockwaves = [];
+    let embers = [];
+    let lclRipples = [];
+    let seaColumns = [];
+
+    // =========================================================================
+    // 3. GENERATIVE PARTICLE & GEOMETRY HELPERS
+    // =========================================================================
+    function initAmbientEmbers() {
+      embers = [];
+      const count = Math.min(130, Math.floor((width * height) / 11000));
+      for (let i = 0; i < count; i++) {
+        embers.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.45,
+          vy: -0.25 - Math.random() * 0.85,
+          size: 1 + Math.random() * 2.5,
+          alpha: 0.25 + Math.random() * 0.65,
+          hue: Math.random() > 0.35 ? 18 + Math.random() * 24 : 350
+        });
+      }
+    }
+    initAmbientEmbers();
+
+    // Spawn octagonal AT Field shards when barrier shatters
+    function spawnATFieldShards(cx, cy, baseRadius) {
+      shards = [];
+      const rings = 4;
+      for (let r = 0; r < rings; r++) {
+        const radius = baseRadius * (0.45 + r * 0.24);
+        const sides = 8;
+        for (let i = 0; i < sides; i++) {
+          const a1 = (i / sides) * Math.PI * 2 + Math.PI / 8;
+          const a2 = ((i + 1) / sides) * Math.PI * 2 + Math.PI / 8;
+          const midA = (a1 + a2) * 0.5;
+
+          const p1 = { x: cx + Math.cos(a1) * radius, y: cy + Math.sin(a1) * radius };
+          const p2 = { x: cx + Math.cos(a2) * radius, y: cy + Math.sin(a2) * radius };
+          const p3 = {
+            x: cx + Math.cos(midA) * (radius * 0.72),
+            y: cy + Math.sin(midA) * (radius * 0.72)
+          };
+
+          const centroidX = (p1.x + p2.x + p3.x) / 3;
+          const centroidY = (p1.y + p2.y + p3.y) / 3;
+          const speed = (2.2 + Math.random() * 5.5) * state.intensity;
+
+          shards.push({
+            x: centroidX,
+            y: centroidY,
+            vx: Math.cos(midA + (Math.random() - 0.5) * 0.3) * speed,
+            vy: Math.sin(midA + (Math.random() - 0.5) * 0.3) * speed - 0.8,
+            rot: 0,
+            vRot: (Math.random() - 0.5) * 0.14,
+            v1: { x: p1.x - centroidX, y: p1.y - centroidY },
+            v2: { x: p2.x - centroidX, y: p2.y - centroidY },
+            v3: { x: p3.x - centroidX, y: p3.y - centroidY },
+            life: 1.0,
+            decay: 0.014 + Math.random() * 0.012
+          });
+        }
+      }
+    }
+
+    // Trigger the iconic Angel Death / Cross Explosion sequence
+    function triggerAngelTermination(customX = null, customY = null) {
+      const horizonY = height * 0.62;
+      state.epicenterX = customX !== null ? customX : width * 0.5;
+      // Keep vertical anchor near or above the LCL horizon for classic Evangelion framing
+      state.epicenterY = customY !== null ? Math.min(customY, horizonY + 25) : horizonY - 12;
+
+      state.phase = 'shattering';
+      state.phaseTimer = 0;
+      state.shatterTriggered = false;
+      state.atFieldCharge = 1.0;
+
+      audioEngine.playATFieldShatter();
+    }
+
+    function executeCrossDetonation() {
+      state.phase = 'detonating';
+      state.phaseTimer = 0;
+      state.shakeMagnitude = 28 * state.intensity;
+      state.flashAlpha = 0.92;
+      state.crossProgress = 0.02;
+      state.crossAlpha = 1.0;
+
+      // Spawn multiple concentric shockwaves
+      shockwaves = [
+        { x: state.epicenterX, y: state.epicenterY, r: 8, maxR: Math.max(width, height) * 0.95, speed: 18, alpha: 0.95, width: 6, color: '#ffffff' },
+        { x: state.epicenterX, y: state.epicenterY, r: 4, maxR: Math.max(width, height) * 0.82, speed: 13, alpha: 0.85, width: 10, color: '#ff5522' },
+        { x: state.epicenterX, y: state.epicenterY, r: 2, maxR: Math.max(width, height) * 0.68, speed: 9.5, alpha: 0.75, width: 4, color: '#ffbb44' }
+      ];
+
+      // Spawn expanding LCL sea ripples along the horizon
+      const horizonY = height * 0.62;
+      for (let i = 0; i < 6; i++) {
+        lclRipples.push({
+          x: state.epicenterX,
+          y: horizonY + 8 + i * 16,
+          rx: 20 + i * 15,
+          ry: 3 + i * 1.2,
+          speed: 7.5 - i * 0.6,
+          alpha: 0.85 - i * 0.1
+        });
+      }
+
+      // Burst of incandescent embers
+      for (let i = 0; i < 95; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = (1.5 + Math.random() * 11) * state.intensity;
+        embers.push({
+          x: state.epicenterX + (Math.random() - 0.5) * 40,
+          y: state.epicenterY + (Math.random() - 0.5) * 40,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd - 1.5,
+          size: 1.5 + Math.random() * 3.5,
+          alpha: 1.0,
+          hue: Math.random() > 0.4 ? 28 : 4
+        });
+      }
+
+      audioEngine.playCruciformDetonation(state.intensity);
+    }
+
+    // =========================================================================
+    // 4. RENDERING LAYERS
+    // =========================================================================
+
+    // Layer A: Apocalyptic Violet-Black Zenith to Crimson/Orange LCL Horizon
+    function drawSkyAndHorizon(horizonY) {
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+      skyGrad.addColorStop(0.0, '#04010a');
+      skyGrad.addColorStop(0.32, '#12031e');
+      skyGrad.addColorStop(0.64, '#36071c');
+      skyGrad.addColorStop(0.86, '#871318');
+      skyGrad.addColorStop(1.0, '#e33b14');
+
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, horizonY + 2);
+
+      // Subtle apocalyptic atmospheric cloud bands
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = 0; i < 5; i++) {
+        const bandY = horizonY * (0.35 + i * 0.13);
+        const shift = Math.sin(state.time * 0.25 + i * 1.7) * 60;
+        const cloudGrad = ctx.createRadialGradient(
+          width * 0.5 + shift,
+          bandY,
+          20,
+          width * 0.5 + shift,
+          bandY,
+          width * 0.65
+        );
+        cloudGrad.addColorStop(0, `rgba(210, 42, 22, ${0.07 + i * 0.025})`);
+        cloudGrad.addColorStop(1, 'rgba(30, 4, 15, 0)');
+        ctx.fillStyle = cloudGrad;
+        ctx.fillRect(0, bandY - 90, width, 180);
+      }
+      ctx.restore();
+
+      // Distant silhouetted mountain ridge / Geofront rim along the horizon
+      ctx.fillStyle = '#0b0208';
+      ctx.beginPath();
+      ctx.moveTo(0, horizonY);
+      const segments = 28;
+      for (let i = 0; i <= segments; i++) {
+        const px = (i / segments) * width;
+        // Deterministic jagged mountain silhouette dipping near center lake
+        const distFromCenter = Math.abs(i / segments - 0.5) * 2;
+        const ridgeHeight =
+          (Math.sin(i * 1.9) * 10 + Math.cos(i * 3.7) * 7 + 16) *
+          Math.pow(distFromCenter, 0.85);
+        ctx.lineTo(px, horizonY - Math.max(0, ridgeHeight));
+      }
+      ctx.lineTo(width, horizonY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Layer B: Glowing Crimson LCL Sea & Dynamic Cross Reflection
+    function drawLCLSea(horizonY) {
+      const seaHeight = height - horizonY;
+      const seaGrad = ctx.createLinearGradient(0, horizonY, 0, height);
+      seaGrad.addColorStop(0.0, '#b8240e');
+      seaGrad.addColorStop(0.18, '#6e0d0d');
+      seaGrad.addColorStop(0.55, '#2b0409');
+      seaGrad.addColorStop(1.0, '#090105');
+
+      ctx.fillStyle = seaGrad;
+      ctx.fillRect(0, horizonY, width, seaHeight);
+
+      // Shimmering horizontal LCL wave highlights
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const waveLines = 42;
+      for (let i = 0; i < waveLines; i++) {
+        const progress = Math.pow(i / waveLines, 1.45);
+        const y = horizonY + progress * seaHeight;
+        const perspectiveScale = 0.2 + progress * 1.8;
+        const waveOffset = Math.sin(state.time * 2.1 + i * 0.9) * (18 * perspectiveScale);
+        const lineW = (45 + Math.sin(i * 2.3 + state.time) * 35) * perspectiveScale;
+
+        // Concentrate golden-crimson reflections under the epicenter
+        const distX = Math.abs(width * 0.5 - state.epicenterX);
+        const baseX = state.epicenterX + waveOffset;
+        const intensityBoost = state.crossAlpha * 0.65;
+
+        ctx.strokeStyle = `rgba(255, ${110 + intensityBoost * 120}, ${45 + intensityBoost * 140}, ${
+          (0.16 + intensityBoost * 0.35) * (1 - progress * 0.65)
+        })`;
+        ctx.lineWidth = 1 + progress * 2.2;
+        ctx.beginPath();
+        ctx.moveTo(baseX - lineW, y);
+        ctx.lineTo(baseX + lineW, y);
+        ctx.stroke();
+
+        // Ambient scattered sea glints
+        if (i % 2 === 0) {
+          const scatterX = ((i * 197 + state.time * 14) % width);
+          ctx.strokeStyle = `rgba(255, 75, 30, ${0.08 * (1 - progress * 0.5)})`;
+          ctx.beginPath();
+          ctx.moveTo(scatterX - 24 * perspectiveScale, y);
+          ctx.lineTo(scatterX + 24 * perspectiveScale, y);
+          ctx.stroke();
+        }
+      }
+
+      // Vertical Pillar Reflection in the LCL Ocean during detonation
+      if (state.crossAlpha > 0.01) {
+        const reflWidth = (36 + state.crossAlpha * 75) * state.intensity;
+        const reflGrad = ctx.createLinearGradient(
+          state.epicenterX - reflWidth,
+          horizonY,
+          state.epicenterX + reflWidth,
+          horizonY
+        );
+        reflGrad.addColorStop(0, 'rgba(255, 50, 20, 0)');
+        reflGrad.addColorStop(0.3, `rgba(255, 120, 45, ${0.45 * state.crossAlpha})`);
+        reflGrad.addColorStop(0.5, `rgba(255, 245, 220, ${0.9 * state.crossAlpha})`);
+        reflGrad.addColorStop(0.7, `rgba(255, 120, 45, ${0.45 * state.crossAlpha})`);
+        reflGrad.addColorStop(1, 'rgba(255, 50, 20, 0)');
+
+        ctx.fillStyle = reflGrad;
+        ctx.fillRect(state.epicenterX - reflWidth, horizonY, reflWidth * 2, seaHeight);
+      }
+
+      // Expanding LCL Sea Ripples
+      for (let i = lclRipples.length - 1; i >= 0; i--) {
+        const rip = lclRipples[i];
+        rip.rx += rip.speed;
+        rip.ry += rip.speed * 0.14;
+        rip.alpha -= 0.008;
+        if (rip.alpha <= 0) {
+          lclRipples.splice(i, 1);
+          continue;
+        }
+        ctx.strokeStyle = `rgba(255, 195, 130, ${rip.alpha})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.ellipse(rip.x, rip.y, rip.rx, rip.ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // Layer C: Angel Core & Concentric Octagonal AT Field Barrier
+    function drawATFieldAndAngel(cx, cy) {
+      if (state.phase !== 'charging' && state.phase !== 'shattering') return;
+
+      const baseRadius = Math.min(width, height) * 0.21 * state.intensity;
+      const pulse = 1 + Math.sin(state.time * 8) * 0.035;
+      const chargeScale = state.phase === 'shattering' ? 1.12 : 0.75 + state.atFieldCharge * 0.25;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // Dark ominous Angel Core silhouette with pulsing crimson S2 Engine heart
+      const coreRadius = 24 * state.intensity * pulse;
+      const auraGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRadius * 3.8);
+      auraGrad.addColorStop(0, 'rgba(255, 230, 200, 0.95)');
+      auraGrad.addColorStop(0.25, 'rgba(255, 45, 45, 0.75)');
+      auraGrad.addColorStop(0.65, 'rgba(140, 10, 40, 0.28)');
+      auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = auraGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRadius * 3.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // S2 Organ Sphere
+      ctx.fillStyle = '#220309';
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRadius * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#ff3344';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Concentric Octagonal AT Field Rings
+      const layers = 5;
+      for (let l = 0; l < layers; l++) {
+        const r = baseRadius * (0.38 + l * 0.18) * pulse * chargeScale;
+        const rotOffset = Math.PI / 8 + (l % 2 === 0 ? 1 : -1) * state.time * 0.15;
+        const alpha = (0.85 - l * 0.13) * (state.phase === 'shattering' ? 0.6 : state.atFieldCharge);
+
+        // Glowing amber/orange octagonal barrier
+        ctx.strokeStyle = `rgba(255, ${135 - l * 14}, 25, ${alpha})`;
+        ctx.lineWidth = l === 0 ? 3.5 : 2.0;
+        ctx.shadowColor = '#ff6a00';
+        ctx.shadowBlur = 16;
+
+        ctx.beginPath();
+        for (let s = 0; s <= 8; s++) {
+          const angle = (s / 8) * Math.PI * 2 + rotOffset;
+          const vx = cx + Math.cos(angle) * r;
+          const vy = cy + Math.sin(angle) * r;
+          if (s === 0) ctx.moveTo(vx, vy);
+          else ctx.lineTo(vx, vy);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Radial AT-Field phase distortion spokes
+        if (l === layers - 1) {
+          ctx.strokeStyle = `rgba(255, 175, 65, ${alpha * 0.35})`;
+          ctx.lineWidth = 1;
+          for (let s = 0; s < 8; s++) {
+            const angle = (s / 8) * Math.PI * 2 + rotOffset;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(angle) * (r * 0.35), cy + Math.sin(angle) * (r * 0.35));
+            ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // Layer D: Shattered AT Field Geometric Shards
+    function drawShards() {
+      if (shards.length === 0) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (let i = shards.length - 1; i >= 0; i--) {
+        const s = shards[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.08; // Slight gravity
+        s.rot += s.vRot;
+        s.life -= s.decay;
+
+        if (s.life <= 0) {
+          shards.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.rot);
+
+        ctx.fillStyle = `rgba(255, 145, 35, ${s.life * 0.38})`;
+        ctx.strokeStyle = `rgba(255, 215, 110, ${s.life * 0.9})`;
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.moveTo(s.v1.x, s.v1.y);
+        ctx.lineTo(s.v2.x, s.v2.y);
+        ctx.lineTo(s.v3.x, s.v3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // Layer E: The Iconic Giant Cruciform Explosion (Cross of Light)
+    function drawCruciformExplosion() {
+      if (state.crossAlpha <= 0.005) return;
+
+      const cx = state.epicenterX;
+      const cy = state.epicenterY;
+      const alpha = state.crossAlpha;
+      const p = state.crossProgress;
+      const inten = state.intensity;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // 1. Massive Atmospheric Crimson/Gold Bloom around the Cross
+      const outerBloomR = Math.max(width, height) * (0.48 + p * 0.25) * inten;
+      const bloomGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, outerBloomR);
+      bloomGrad.addColorStop(0, `rgba(255, 250, 235, ${0.85 * alpha})`);
+      bloomGrad.addColorStop(0.22, `rgba(255, 140, 50, ${0.55 * alpha})`);
+      bloomGrad.addColorStop(0.55, `rgba(235, 35, 25, ${0.28 * alpha})`);
+      bloomGrad.addColorStop(1, 'rgba(120, 0, 15, 0)');
+      ctx.fillStyle = bloomGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Chromatic Aberration Ghost Crosses (Red & Cyan edge offset for cinema impact)
+      const aberrationOffset = 7 * alpha * inten;
+      drawCrossGeometry(cx - aberrationOffset, cy, p, inten, `rgba(255, 25, 45, ${0.42 * alpha})`, 1.12);
+      drawCrossGeometry(cx + aberrationOffset, cy, p, inten, `rgba(60, 220, 255, ${0.28 * alpha})`, 1.08);
+
+      // 3. Outer Crimson-Orange Incandescent Cross Halo
+      drawCrossGeometry(cx, cy, p, inten, `rgba(255, 75, 25, ${0.72 * alpha})`, 1.45);
+
+      // 4. Inner Golden-Amber Cross Core
+      drawCrossGeometry(cx, cy, p, inten, `rgba(255, 195, 95, ${0.88 * alpha})`, 0.85);
+
+      // 5. Razor-Sharp Pure White Blinding Core Pillar & Crossbar
+      drawCrossGeometry(cx, cy, p, inten, `rgba(255, 255, 255, ${0.98 * alpha})`, 0.42);
+
+      // 6. Anamorphic Horizontal Lens Flare Streak
+      const flareW = width * (0.85 + p * 0.35);
+      const flareGrad = ctx.createLinearGradient(cx - flareW * 0.5, cy, cx + flareW * 0.5, cy);
+      flareGrad.addColorStop(0, 'rgba(255, 120, 60, 0)');
+      flareGrad.addColorStop(0.35, `rgba(255, 180, 110, ${0.35 * alpha})`);
+      flareGrad.addColorStop(0.5, `rgba(255, 255, 255, ${0.95 * alpha})`);
+      flareGrad.addColorStop(0.65, `rgba(255, 180, 110, ${0.35 * alpha})`);
+      flareGrad.addColorStop(1, 'rgba(255, 120, 60, 0)');
+      ctx.fillStyle = flareGrad;
+      ctx.fillRect(cx - flareW * 0.5, cy - 3 * inten, flareW, 6 * inten);
+
+      // 7. Concentric Expanding Shockwave Rings
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.r += sw.speed * inten;
+        sw.alpha *= 0.962;
+        if (sw.alpha <= 0.01 || sw.r > sw.maxR) {
+          shockwaves.splice(i, 1);
+          continue;
+        }
+        ctx.strokeStyle = sw.color;
+        ctx.globalAlpha = sw.alpha;
+        ctx.lineWidth = sw.width * (1 - sw.r / sw.maxR);
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // Helper that draws the tapered, razor-sharp Evangelion Cross silhouette
+    function drawCrossGeometry(cx, cy, progress, intensity, fillStyle, thicknessMult) {
+      const vTop = cy - height * (0.85 * Math.min(1, progress * 1.4));
+      const vBottom = cy + height * (0.38 * Math.min(1, progress * 1.4));
+      const hSpan = Math.min(width * 0.46, height * 0.52) * intensity * Math.min(1, progress * 1.35);
+
+      const stemHalfW = (26 * intensity * thicknessMult) * (0.85 + Math.sin(state.time * 24) * 0.05);
+      const armHalfH = (20 * intensity * thicknessMult) * (0.85 + Math.cos(state.time * 24) * 0.05);
+
+      ctx.fillStyle = fillStyle;
+      ctx.beginPath();
+      // Top tip (tapered needle point)
+      ctx.moveTo(cx, vTop);
+      ctx.lineTo(cx + stemHalfW * 0.72, cy - armHalfH);
+      // Right arm tip (tapered point)
+      ctx.lineTo(cx + hSpan, cy);
+      ctx.lineTo(cx + stemHalfW * 0.85, cy + armHalfH);
+      // Bottom base (flaring into horizon)
+      ctx.lineTo(cx + stemHalfW * 1.35, vBottom);
+      ctx.lineTo(cx - stemHalfW * 1.35, vBottom);
+      // Left arm tip
+      ctx.lineTo(cx - stemHalfW * 0.85, cy + armHalfH);
+      ctx.lineTo(cx - hSpan, cy);
+      ctx.lineTo(cx - stemHalfW * 0.72, cy - armHalfH);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Layer F: Drifting LCL Mist & Glowing Embers
+    function drawEmbers() {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (let i = embers.length - 1; i >= 0; i--) {
+        const e = embers[i];
+        e.x += e.vx + Math.sin(state.time * 1.5 + i) * 0.25;
+        e.y += e.vy;
+        e.vx *= 0.992;
+
+        // Wrap ambient particles or fade burst particles
+        if (e.y < -10) {
+          e.y = height + 10;
+          e.x = Math.random() * width;
+        }
+        if (e.x < -20) e.x = width + 20;
+        if (e.x > width + 20) e.x = -20;
+
+        if (embers.length > 140) {
+          e.alpha -= 0.008;
+          if (e.alpha <= 0.02) {
+            embers.splice(i, 1);
+            continue;
+          }
+        }
+
+        ctx.fillStyle = `hsla(${e.hue}, 100%, 62%, ${e.alpha})`;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 5. HUD TELEMETRY & HARMONIC SINE-WAVE GRAPH UPDATE
+    // =========================================================================
+    const statusBadge = document.getElementById('statusBadge');
+    const targetStatusVal = document.getElementById('targetStatusVal');
+    const syncRatioVal = document.getElementById('syncRatioVal');
+    const lclDensityVal = document.getElementById('lclDensityVal');
+    const phaseLabel = document.getElementById('phaseLabel');
+    const emergencyBanner = document.getElementById('emergencyBanner');
+    const emergencyText = document.getElementById('emergencyText');
+
+    function updateHUD() {
+      // Animate harmonic ψ-wave graph on top-right mini canvas
+      waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+      const midY = waveCanvas.height / 2;
+
+      // Grid center line
+      waveCtx.strokeStyle = 'rgba(255, 110, 40, 0.22)';
+      waveCtx.lineWidth = 1;
+      waveCtx.beginPath();
+      waveCtx.moveTo(0, midY);
+      waveCtx.lineTo(waveCanvas.width, midY);
+      waveCtx.stroke();
+
+      // Dual phase-shifted Evangelion harmonic sine waves
+      const amp =
+        state.phase === 'detonating'
+          ? 14
+          : state.phase === 'shattering'
+          ? 11
+          : 5 + state.atFieldCharge * 4;
+
+      ['#ff4422', '#ffaa44'].forEach((col, idx) => {
+        waveCtx.strokeStyle = col;
+        waveCtx.lineWidth = 1.6;
+        waveCtx.beginPath();
+        for (let x = 0; x < waveCanvas.width; x += 2) {
+          const freq = idx === 0 ? 0.085 : 0.13;
+          const speed = idx === 0 ? 7.5 : -5.5;
+          const y =
+            midY +
+            Math.sin(x * freq + state.time * speed) *
+              amp *
+              Math.sin((x / waveCanvas.width) * Math.PI);
+          if (x === 0) waveCtx.moveTo(x, y);
+          else waveCtx.lineTo(x, y);
+        }
+        waveCtx.stroke();
+      });
+
+      // Dynamic telemetry readouts
+      const syncJitter = (400 + Math.sin(state.time * 12) * 14.8).toFixed(1);
+      syncRatioVal.textContent = `${syncJitter}%`;
+
+      const lclVal = (98.2 + Math.cos(state.time * 3) * 1.4).toFixed(2);
+      lclDensityVal.textContent = `${lclVal}%`;
+
+      if (state.phase === 'charging') {
+        statusBadge.textContent = 'PATTERN: BLUE';
+        statusBadge.className =
+          'text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-blue-500/25 border border-blue-400 text-blue-300 font-bold';
+        targetStatusVal.textContent = 'AT-FIELD ACTIVE';
+        targetStatusVal.className = 'text-amber-300 font-bold text-right';
+        phaseLabel.textContent = '01 // BARRIER RESONANCE';
+        emergencyBanner.classList.add('hidden');
+      } else if (state.phase === 'shattering') {
+        statusBadge.textContent = 'AT-FIELD BREACH';
+        statusBadge.className =
+          'text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-amber-500/30 border border-amber-400 text-amber-200 font-bold blink-fast';
+        targetStatusVal.textContent = 'PHASE NEUTRALIZED';
+        targetStatusVal.className = 'text-orange-400 font-bold text-right';
+        phaseLabel.textContent = '02 // STRUCTURAL COLLAPSE';
+        emergencyBanner.classList.remove('hidden');
+        emergencyText.textContent = 'WARNING // AT-FIELD COLLAPSE DETECTED';
+      } else if (state.phase === 'detonating') {
+        statusBadge.textContent = 'ANGEL TERMINATED';
+        statusBadge.className =
+          'text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-red-600/40 border border-red-400 text-red-200 font-bold blink-fast';
+        targetStatusVal.textContent = 'SILENCED // CROSS';
+        targetStatusVal.className = 'text-red-400 font-bold text-right';
+        phaseLabel.textContent = '03 // CRUCIFORM EXPANSION';
+        emergencyBanner.classList.remove('hidden');
+        emergencyText.textContent = 'TARGET SILENCED // THIRD IMPACT PHENOMENON';
+      } else {
+        statusBadge.textContent = 'SIGNAL LOST';
+        statusBadge.className =
+          'text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-orange-900/40 border border-orange-500/50 text-orange-300 font-bold';
+        targetStatusVal.textContent = 'LCL DISSOLUTION';
+        targetStatusVal.className = 'text-orange-300 font-bold text-right';
+        phaseLabel.textContent = '04 // LCL HORIZON EQUILIBRIUM';
+        emergencyBanner.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // 6. MAIN SIMULATION & RENDER LOOP (60 FPS)
+    // =========================================================================
+    let lastTimestamp = 0;
+
+    function animate(timestamp) {
+      const dt = Math.min((timestamp - lastTimestamp) / 1000 || 0.016, 0.05);
+      lastTimestamp = timestamp;
+      state.time += dt;
+      state.phaseTimer += dt;
+
+      const horizonY = height * 0.62;
+
+      // State Machine Transitions
+      if (state.phase === 'charging') {
+        state.epicenterX = width * 0.5;
+        state.epicenterY = horizonY - 14;
+        state.atFieldCharge = Math.min(1.0, state.phaseTimer / 2.6);
+        state.crossAlpha *= 0.92;
+
+        if (state.autoLoop && state.phaseTimer >= 3.2) {
+          triggerAngelTermination();
+        }
+      } else if (state.phase === 'shattering') {
+        if (!state.shatterTriggered && state.phaseTimer >= 0.15) {
+          state.shatterTriggered = true;
+          const baseRadius = Math.min(width, height) * 0.21 * state.intensity;
+          spawnATFieldShards(state.epicenterX, state.epicenterY, baseRadius);
+          state.shakeMagnitude = 7 * state.intensity;
+        }
+        if (state.phaseTimer >= 0.58) {
+          executeCrossDetonation();
+        }
+      } else if (state.phase === 'detonating') {
+        state.crossProgress = Math.min(1.0, state.crossProgress + dt * 2.6);
+        state.crossAlpha = 1.0;
+
+        if (state.phaseTimer >= 2.2) {
+          state.phase = 'afterglow';
+          state.phaseTimer = 0;
+        }
+      } else if (state.phase === 'afterglow') {
+        state.crossAlpha = Math.max(0, 1.0 - state.phaseTimer / 3.2);
+        if (state.autoLoop && state.phaseTimer >= 3.6) {
+          state.phase = 'charging';
+          state.phaseTimer = 0;
+          state.atFieldCharge = 0;
+        }
+      }
+
+      // Decay screen shake & whiteout flash
+      state.shakeMagnitude *= 0.91;
+      state.flashAlpha *= 0.87;
+
+      // Apply seismic camera shake
+      ctx.save();
+      if (state.shakeMagnitude > 0.2) {
+        const sx = (Math.random() - 0.5) * state.shakeMagnitude;
+        const sy = (Math.random() - 0.5) * state.shakeMagnitude;
+        ctx.translate(sx, sy);
+      }
+
+      // Render visual layers back-to-front
+      drawSkyAndHorizon(horizonY);
+      drawLCLSea(horizonY);
+      drawATFieldAndAngel(state.epicenterX, state.epicenterY);
+      drawShards();
+      drawCruciformExplosion();
+      drawEmbers();
+
+      // Blinding initial detonation flash overlay
+      if (state.flashAlpha > 0.01) {
+        ctx.fillStyle = `rgba(255, 245, 235, ${state.flashAlpha})`;
+        ctx.fillRect(-30, -30, width + 60, height + 60);
+      }
+
+      ctx.restore();
+
+      // Update NERV tactical telemetry
+      if (state.hudVisible) {
+        updateHUD();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // =========================================================================
+    // 7. USER INTERACTIONS & CONTROLS
+    // =========================================================================
+    const detonateBtn = document.getElementById('detonateBtn');
+    const autoLoopBtn = document.getElementById('autoLoopBtn');
+    const audioToggleBtn = document.getElementById('audioToggleBtn');
+    const intensitySlider = document.getElementById('intensitySlider');
+    const hudToggleBtn = document.getElementById('hudToggleBtn');
+    const hudLayer = document.getElementById('hudLayer');
+
+    // Click or tap directly on the canvas to detonate an Angel at that coordinate
+    canvas.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      triggerAngelTermination(x, y);
+    });
+
+    detonateBtn.addEventListener('click', () => {
+      triggerAngelTermination();
+    });
+
+    autoLoopBtn.addEventListener('click', () => {
+      state.autoLoop = !state.autoLoop;
+      autoLoopBtn.textContent = `AUTO-LOOP: ${state.autoLoop ? 'ON' : 'OFF'}`;
+      autoLoopBtn.classList.toggle('active', state.autoLoop);
+    });
+
+    audioToggleBtn.addEventListener('click', () => {
+      const isOn = audioEngine.toggle();
+      audioToggleBtn.textContent = `AUDIO: ${isOn ? 'ON' : 'OFF'}`;
+      audioToggleBtn.classList.toggle('active', isOn);
+    });
+
+    intensitySlider.addEventListener('input', (e) => {
+      state.intensity = parseFloat(e.target.value);
+    });
+
+    hudToggleBtn.addEventListener('click', () => {
+      state.hudVisible = !state.hudVisible;
+      // Keep bottom-right command bar accessible while hiding telemetry panels
+      const panels = hudLayer.querySelectorAll('.hud-box');
+      panels.forEach((panel, idx) => {
+        if (idx < panels.length - 1) {
+          panel.style.opacity = state.hudVisible ? '1' : '0';
+          panel.style.pointerEvents = state.hudVisible ? 'auto' : 'none';
+        }
+      });
+    });
+
+    // Keyboard shortcut: Spacebar triggers Angel Termination
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        triggerAngelTermination();
+      }
+    });
+
+    // Start animation loop on window load
+    window.onload = function () {
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>

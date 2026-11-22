@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOJUTSU // SHARINGAN TO RINNEGAN EVOLUTION</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Noto+Serif+JP:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050106;
+      font-family: 'Share Tech Mono', monospace;
+      color: #f3d5d5;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    .cinematic-vignette {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 48%, rgba(0, 0, 0, 0.84) 100%);
+      z-index: 10;
+    }
+    .kanji-font {
+      font-family: 'Noto Serif JP', serif;
+    }
+    .title-font {
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.14em;
+    }
+    .glass-panel {
+      background: rgba(12, 4, 10, 0.68);
+      border: 1px solid rgba(220, 45, 55, 0.38);
+      box-shadow: 0 0 24px rgba(180, 20, 30, 0.18), inset 0 0 12px rgba(255, 50, 60, 0.08);
+      backdrop-filter: blur(6px);
+      transition: border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+    .glass-panel.rinnegan-theme {
+      border-color: rgba(175, 130, 245, 0.45);
+      box-shadow: 0 0 24px rgba(145, 95, 235, 0.22), inset 0 0 12px rgba(180, 140, 255, 0.1);
+    }
+    .stage-pill {
+      background: rgba(25, 8, 14, 0.72);
+      border: 1px solid rgba(220, 55, 65, 0.35);
+      color: #d8a8a8;
+      transition: all 0.2s ease;
+    }
+    .stage-pill:hover {
+      background: rgba(185, 25, 35, 0.38);
+      border-color: #ff6b75;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .stage-pill.active {
+      background: rgba(215, 25, 40, 0.55);
+      border-color: #ff8a92;
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(255, 45, 60, 0.65);
+    }
+    .stage-pill.active.rinnegan-pill {
+      background: rgba(135, 85, 215, 0.55);
+      border-color: #d4b8ff;
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(165, 115, 255, 0.68);
+    }
+    .action-btn {
+      background: rgba(210, 30, 45, 0.22);
+      border: 1px solid rgba(255, 95, 105, 0.6);
+      color: #ffb8be;
+      transition: all 0.18s ease;
+    }
+    .action-btn:hover {
+      background: rgba(225, 40, 55, 0.45);
+      border-color: #ffffff;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(255, 60, 75, 0.55);
+    }
+    .action-btn.active {
+      background: rgba(225, 40, 55, 0.5);
+      border-color: #ff99a2;
+      color: #ffffff;
+    }
+    /* Custom scrollbar for horizontal pill bar on small screens */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main Generative Art Canvas -->
+  <canvas id="dojutsuCanvas"></canvas>
+
+  <!-- Subtle Vignette Overlay -->
+  <div class="cinematic-vignette"></div>
+
+  <!-- Minimalist Anime HUD Overlay -->
+  <div id="hudContainer" class="fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+    <!-- Top Bar: Dojutsu Lore Telemetry & Audio/Controls -->
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <!-- Top-Left Dojutsu Info Card -->
+      <div id="infoPanel" class="glass-panel rounded-lg px-3.5 py-2.5 sm:px-4 sm:py-3 pointer-events-auto max-w-xs sm:max-w-sm">
+        <div class="flex items-center justify-between gap-3 border-b border-white/15 pb-1.5 mb-1.5">
+          <span id="stageCounter" class="text-[11px] sm:text-xs font-bold tracking-widest text-red-400">
+            STAGE 01 / 10
+          </span>
+          <span id="classificationBadge" class="text-[10px] px-2 py-0.5 rounded bg-red-500/20 border border-red-400/50 text-red-200 font-bold">
+            KEKKEI GENKAI
+          </span>
+        </div>
+        <div class="flex items-baseline gap-2.5">
+          <h1 id="dojutsuTitle" class="title-font text-sm sm:text-base font-black text-white leading-tight">
+            1-TOMOE SHARINGAN
+          </h1>
+          <span id="dojutsuKanji" class="kanji-font text-xs sm:text-sm font-bold text-red-400">
+            写輪眼
+          </span>
+        </div>
+        <p id="dojutsuSubtitle" class="text-[11px] sm:text-xs text-rose-200/75 mt-1 leading-snug">
+          Initial Uchiha awakening. Enhanced visual perception & chakra flow tracking.
+        </p>
+      </div>
+
+      <!-- Top-Right Chakra Frequency & Action Buttons -->
+      <div id="controlPanel" class="glass-panel rounded-lg px-3 py-2 sm:px-3.5 sm:py-2.5 pointer-events-auto flex flex-col items-end gap-2">
+        <div class="flex items-center gap-2">
+          <button id="audioBtn" class="action-btn rounded px-2.5 py-1 text-[11px] sm:text-xs font-bold cursor-pointer">
+            SOUND: OFF
+          </button>
+          <button id="autoEvolveBtn" class="action-btn rounded px-2.5 py-1 text-[11px] sm:text-xs font-bold cursor-pointer">
+            AUTO: OFF
+          </button>
+          <button id="hudToggleBtn" class="action-btn rounded px-2 py-1 text-[11px] sm:text-xs cursor-pointer" title="Toggle HUD">
+            HUD
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-rose-200/60">CHAKRA PULSE</span>
+          <canvas id="chakraWaveCanvas" width="135" height="28" class="rounded border border-white/15 bg-black/50"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center-Bottom Prompt & Stage Selector Bar -->
+    <div class="flex flex-col items-center gap-2.5">
+      <!-- Interactive Prompt Pill -->
+      <div id="clickPrompt" class="px-3.5 py-1 rounded-full bg-black/55 border border-white/15 text-[11px] sm:text-xs tracking-wider text-rose-100/85 backdrop-blur-sm">
+        CLICK EYE OR PRESS [SPACE] TO EVOLVE DOJUTSU
+      </div>
+
+      <!-- Direct Stage Selector Bar (All 10 Eyes) -->
+      <div id="stageBar" class="glass-panel rounded-xl p-1.5 sm:p-2 pointer-events-auto max-w-full overflow-x-auto no-scrollbar flex items-center gap-1.5">
+        <!-- Populated dynamically via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * NARUTO DOJUTSU EVOLUTION // SHARINGAN TO RINNEGAN GENERATIVE ARTWORK
+     * Single-file HTML5 Canvas + Procedural Web Audio Synthesis
+     */
+
+    // =========================================================================
+    // 1. PROCEDURAL WEB AUDIO ENGINE (Sharingan Chime, Chakra Hum, Rinnegan)
+    // =========================================================================
+    class DojutsuAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = false;
+        this.masterGain = null;
+        this.humOsc = null;
+        this.humGain = null;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.4;
+        this.masterGain.connect(this.ctx.destination);
+
+        // Deep meditative chakra ambient hum
+        this.humGain = this.ctx.createGain();
+        this.humGain.gain.value = 0.0;
+        this.humGain.connect(this.masterGain);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 180;
+        filter.connect(this.humGain);
+
+        this.humOsc = this.ctx.createOscillator();
+        this.humOsc.type = 'sawtooth';
+        this.humOsc.frequency.value = 65.41; // C2 deep chakra resonance
+        this.humOsc.connect(filter);
+        this.humOsc.start();
+      }
+
+      toggle() {
+        if (!this.ctx) this.init();
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        this.enabled = !this.enabled;
+        const now = this.ctx.currentTime;
+        this.humGain.gain.cancelScheduledValues(now);
+        this.humGain.gain.setTargetAtTime(this.enabled ? 0.16 : 0.0, now, 0.3);
+        return this.enabled;
+      }
+
+      // Iconic Sharingan spin & crystalline activation sound
+      playSharinganActivation(stageIndex) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // 1. High-pitched iconic Sharingan "shing / spin" harmonic sweep
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        const baseFreq = 980 + stageIndex * 65;
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(baseFreq * 0.65, now);
+        osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.14);
+        osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.15, now + 0.65);
+
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(baseFreq * 1.3, now);
+        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 2.1, now + 0.16);
+        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 1.72, now + 0.65);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.24, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.75);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.78);
+        osc2.stop(now + 0.78);
+
+        // 2. Chakra pulse thump
+        const sub = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(140, now);
+        sub.frequency.exponentialRampToValueAtTime(38, now + 0.45);
+
+        subGain.gain.setValueAtTime(0.45, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        sub.connect(subGain);
+        subGain.connect(this.masterGain);
+        sub.start(now);
+        sub.stop(now + 0.52);
+      }
+
+      // Ethereal, godlike Rinnegan / Rinne Sharingan harmonic chord
+      playRinneganAwakening(isRinneSharingan = false) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Deep divine bass drop
+        const bass = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        bass.type = 'sine';
+        bass.frequency.setValueAtTime(110, now);
+        bass.frequency.exponentialRampToValueAtTime(32.7, now + 1.6);
+
+        bassGain.gain.setValueAtTime(0.6, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+
+        bass.connect(bassGain);
+        bassGain.connect(this.masterGain);
+        bass.start(now);
+        bass.stop(now + 1.85);
+
+        // Mystical suspended bell chord (D4, A4, E5, F#5, A5)
+        const notes = isRinneSharingan
+          ? [293.66, 440.0, 659.25, 783.99, 1046.5]
+          : [293.66, 440.0, 659.25, 739.99, 880.0];
+
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.03);
+
+          g.gain.setValueAtTime(0.001, now + idx * 0.03);
+          g.gain.linearRampToValueAtTime(0.11, now + idx * 0.03 + 0.08);
+          g.gain.exponentialRampToValueAtTime(0.0005, now + 2.1 + idx * 0.1);
+
+          osc.connect(g);
+          g.connect(this.masterGain);
+          osc.start(now + idx * 0.03);
+          osc.stop(now + 2.2 + idx * 0.1);
+        });
+      }
+    }
+
+    const audio = new DojutsuAudioEngine();
+
+    // =========================================================================
+    // 2. COMPLETE DOJUTSU EVOLUTION DEFINITIONS (ALL 10 STAGES)
+    // =========================================================================
+    const DOJUTSU_STAGES = [
+      {
+        id: 'tomoe1',
+        shortName: '1-TOMOE',
+        name: '1-TOMOE SHARINGAN',
+        kanji: '写輪眼・一勾玉',
+        classification: 'UCHIHA KEKKEI GENKAI',
+        subtitle: 'Initial awakening. Grants heightened kinetic perception & chakra sight.',
+        theme: 'sharingan',
+        irisPrimary: '#d91622',
+        irisDark: '#4a0308',
+        irisHighlight: '#ff525e',
+        chakraColor: [235, 30, 45],
+        spinSpeed: 0.75
+      },
+      {
+        id: 'tomoe2',
+        shortName: '2-TOMOE',
+        name: '2-TOMOE SHARINGAN',
+        kanji: '写輪眼・二勾玉',
+        classification: 'UCHIHA KEKKEI GENKAI',
+        subtitle: 'Dual symmetrical tomoe. Enables predictive movement & jutsu copying.',
+        theme: 'sharingan',
+        irisPrimary: '#df1824',
+        irisDark: '#4f0308',
+        irisHighlight: '#ff5964',
+        chakraColor: [240, 32, 48],
+        spinSpeed: 0.95
+      },
+      {
+        id: 'tomoe3',
+        shortName: '3-TOMOE',
+        name: '3-TOMOE SHARINGAN',
+        kanji: '写輪眼・三勾玉',
+        classification: 'MATURE SHARINGAN',
+        subtitle: 'Fully matured Sharingan. Unlocks fluid genjutsu & micro-muscle reading.',
+        theme: 'sharingan',
+        irisPrimary: '#e61926',
+        irisDark: '#520308',
+        irisHighlight: '#ff616b',
+        chakraColor: [250, 35, 50],
+        spinSpeed: 1.15
+      },
+      {
+        id: 'ms_itachi',
+        shortName: 'ITACHI MS',
+        name: "ITACHI'S MANGEKYOU SHARINGAN",
+        kanji: '万華鏡写輪眼・鼬',
+        classification: 'MANGEKYOU SHARINGAN',
+        subtitle: 'Three curved shuriken blades. Wields Tsukuyomi & black Amaterasu flames.',
+        theme: 'mangekyou',
+        irisPrimary: '#dc1420',
+        irisDark: '#380105',
+        irisHighlight: '#ff4754',
+        chakraColor: [220, 20, 35],
+        spinSpeed: 1.35
+      },
+      {
+        id: 'ms_kakashi',
+        shortName: 'OBITO/KAKASHI MS',
+        name: "KAKASHI / OBITO'S MANGEKYOU",
+        kanji: '万華鏡写輪眼・神威',
+        classification: 'MANGEKYOU SHARINGAN',
+        subtitle: 'Three sweeping pinwheel scythes spiraling inward. Master of Kamui space-time.',
+        theme: 'mangekyou',
+        irisPrimary: '#d81522',
+        irisDark: '#360105',
+        irisHighlight: '#ff4a56',
+        chakraColor: [225, 25, 45],
+        spinSpeed: 1.45
+      },
+      {
+        id: 'ms_sasuke',
+        shortName: 'SASUKE MS',
+        name: "SASUKE'S MANGEKYOU SHARINGAN",
+        kanji: '万華鏡写輪眼・佐助',
+        classification: 'MANGEKYOU SHARINGAN',
+        subtitle: 'Six-pointed overlapping atomic star seal. Controls Kagutsuchi flame shape.',
+        theme: 'mangekyou',
+        irisPrimary: '#e01622',
+        irisDark: '#3a0106',
+        irisHighlight: '#ff525d',
+        chakraColor: [235, 25, 42],
+        spinSpeed: 1.25
+      },
+      {
+        id: 'ems_madara',
+        shortName: 'MADARA EMS',
+        name: "MADARA'S ETERNAL MANGEKYOU",
+        kanji: '永遠の万華鏡写輪眼・斑',
+        classification: 'ETERNAL MANGEKYOU',
+        subtitle: 'Fusion of Madara & Izuna. Three looped rings pierced by straight blades.',
+        theme: 'mangekyou',
+        irisPrimary: '#e81724',
+        irisDark: '#320004',
+        irisHighlight: '#ff636e',
+        chakraColor: [245, 28, 45],
+        spinSpeed: 1.5
+      },
+      {
+        id: 'ems_sasuke',
+        shortName: 'SASUKE EMS',
+        name: "SASUKE'S ETERNAL MANGEKYOU",
+        kanji: '永遠の万華鏡写輪眼・佐助',
+        classification: 'ETERNAL MANGEKYOU',
+        subtitle: "Itachi's curved pinwheel blades embedded inside Sasuke's straight hexagram.",
+        theme: 'mangekyou',
+        irisPrimary: '#eb1826',
+        irisDark: '#300004',
+        irisHighlight: '#ff6b75',
+        chakraColor: [250, 30, 52],
+        spinSpeed: 1.55
+      },
+      {
+        id: 'rinnegan',
+        shortName: 'RINNEGAN',
+        name: 'RINNEGAN // SAMSARA EYE',
+        kanji: '輪廻眼',
+        classification: 'SAGE OF SIX PATHS',
+        subtitle: 'Exalted lavender ripple eye of creation & destruction. Wields the Six Paths.',
+        theme: 'rinnegan',
+        irisPrimary: '#b594e8',
+        irisDark: '#4e357a',
+        irisHighlight: '#e2d1ff',
+        chakraColor: [165, 115, 255],
+        spinSpeed: 0.35
+      },
+      {
+        id: 'rinnesharingan',
+        shortName: 'RINNE SHARINGAN',
+        name: 'RINNE SHARINGAN // GOD TREE',
+        kanji: '輪廻写輪眼',
+        classification: 'KAGUYA // TEN-TAILS',
+        subtitle: 'Progenitor crimson ripple eye bearing nine tomoe. Infinite Tsukuyomi source.',
+        theme: 'rinnesharingan',
+        irisPrimary: '#d41322',
+        irisDark: '#3b0108',
+        irisHighlight: '#ff5464',
+        chakraColor: [215, 25, 85],
+        spinSpeed: 0.65
+      }
+    ];
+
+    // =========================================================================
+    // 3. CANVAS & INTERACTIVE STATE SETUP
+    // =========================================================================
+    const canvas = document.getElementById('dojutsuCanvas');
+    const ctx = canvas.getContext('2d');
+    const waveCanvas = document.getElementById('chakraWaveCanvas');
+    const waveCtx = waveCanvas.getContext('2d');
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const state = {
+      stageIndex: 0,
+      time: 0,
+      rotationAngle: 0,
+      spinBoost: 0, // Surges on evolution click
+      dilationScale: 1.0, // Eye contraction/expansion pulse
+      flashAlpha: 0,
+      titleBannerAlpha: 0,
+      autoEvolve: false,
+      autoTimer: 0,
+      hudVisible: true,
+      // Subtle cursor tracking
+      mouseX: width * 0.5,
+      mouseY: height * 0.5,
+      lookOffsetX: 0,
+      lookOffsetY: 0,
+      // Smoothly interpolated RGB chakra color
+      currentRgb: [235, 30, 45]
+    };
+
+    let shockwaves = [];
+    let chakraParticles = [];
+    let amaterasuFlames = [];
+
+    // Initialize floating chakra embers & dark flames
+    function initParticles() {
+      chakraParticles = [];
+      amaterasuFlames = [];
+      const count = Math.min(110, Math.floor((width * height) / 12000));
+      for (let i = 0; i < count; i++) {
+        chakraParticles.push({
+          angle: Math.random() * Math.PI * 2,
+          dist: 80 + Math.random() * Math.max(width, height) * 0.55,
+          speed: (0.15 + Math.random() * 0.45) * (Math.random() > 0.5 ? 1 : -1),
+          radialSpeed: -0.2 - Math.random() * 0.6,
+          size: 1.2 + Math.random() * 2.6,
+          alpha: 0.25 + Math.random() * 0.65
+        });
+      }
+      for (let i = 0; i < 42; i++) {
+        amaterasuFlames.push({
+          angle: (i / 42) * Math.PI * 2,
+          offset: Math.random() * 100,
+          size: 12 + Math.random() * 22,
+          speed: 0.6 + Math.random() * 1.1
+        });
+      }
+    }
+    initParticles();
+
+    // =========================================================================
+    // 4. STAGE TRANSITION & EVOLUTION TRIGGER
+    // =========================================================================
+    function setDojutsuStage(newIndex, clickX = null, clickY = null) {
+      state.stageIndex = ((newIndex % DOJUTSU_STAGES.length) + DOJUTSU_STAGES.length) % DOJUTSU_STAGES.length;
+      const stage = DOJUTSU_STAGES[state.stageIndex];
+
+      // Trigger dramatic anime eye dilation & rotational surge
+      state.spinBoost = 16.5;
+      state.dilationScale = 1.24;
+      state.flashAlpha = 0.65;
+      state.titleBannerAlpha = 1.35;
+      state.autoTimer = 0;
+
+      const cx = clickX !== null ? clickX : width * 0.5;
+      const cy = clickY !== null ? clickY : height * 0.5;
+
+      // Spawn expanding chakra shockwaves
+      const [r, g, b] = stage.chakraColor;
+      shockwaves.push(
+        { x: cx, y: cy, r: 45, maxR: Math.max(width, height) * 0.78, speed: 16, alpha: 0.95, width: 5, color: `rgb(${r},${g},${b})` },
+        { x: cx, y: cy, r: 20, maxR: Math.max(width, height) * 0.62, speed: 11, alpha: 0.85, width: 2.5, color: '#ffffff' }
+      );
+
+      // Play procedural sound effect
+      if (stage.theme === 'rinnegan' || stage.theme === 'rinnesharingan') {
+        audio.playRinneganAwakening(stage.theme === 'rinnesharingan');
+      } else {
+        audio.playSharinganActivation(state.stageIndex);
+      }
+
+      updateHUD();
+    }
+
+    function evolveNext(clickX = null, clickY = null) {
+      setDojutsuStage(state.stageIndex + 1, clickX, clickY);
+    }
+
+    // =========================================================================
+    // 5. PRECISION VECTOR GEOMETRY FOR EVERY SHARINGAN & RINNEGAN PATTERN
+    // =========================================================================
+
+    // Helper: Draw a classic curved comma-shaped Sharingan Tomoe
+    function drawTomoe(ctx, x, y, size, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      ctx.fillStyle = '#070103';
+      ctx.beginPath();
+      // Circular head
+      ctx.arc(0, 0, size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sweeping curved tail
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.95);
+      ctx.bezierCurveTo(
+        size * 1.45,
+        -size * 1.15,
+        size * 2.15,
+        size * 0.35,
+        size * 1.25,
+        size * 1.55
+      );
+      ctx.bezierCurveTo(
+        size * 1.35,
+        size * 0.55,
+        size * 0.65,
+        size * 0.1,
+        0,
+        size * 0.85
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Pattern 1-3: Classic 1, 2, or 3 Tomoe Sharingan
+    function drawTomoeSharingan(ctx, R, count) {
+      const ringR = R * 0.56;
+      const tomoeSize = R * 0.088;
+
+      // Thin black inner connecting ring
+      ctx.strokeStyle = 'rgba(10, 0, 2, 0.78)';
+      ctx.lineWidth = Math.max(1.8, R * 0.016);
+      ctx.beginPath();
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Central black pupil
+      ctx.fillStyle = '#060002';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.19, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw each Tomoe along the ring
+      for (let i = 0; i < count; i++) {
+        const theta = (i / count) * Math.PI * 2 - Math.PI / 2;
+        const tx = Math.cos(theta) * ringR;
+        const ty = Math.sin(theta) * ringR;
+        drawTomoe(ctx, tx, ty, tomoeSize, theta + Math.PI * 0.58);
+      }
+    }
+
+    // Pattern 4: Itachi Uchiha's Mangekyou Sharingan (3 curved shuriken blades)
+    function drawItachiMS(ctx, R) {
+      const bladeR = R * 0.84;
+
+      ctx.fillStyle = '#060002';
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI * 2) / 3);
+
+        // Sweeping curved blade petal
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(
+          R * 0.28,
+          -R * 0.35,
+          R * 0.32,
+          -bladeR * 0.85,
+          0,
+          -bladeR
+        );
+        ctx.bezierCurveTo(
+          -R * 0.14,
+          -bladeR * 0.65,
+          -R * 0.18,
+          -R * 0.25,
+          0,
+          0
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Central crimson dot inside black hub
+      ctx.fillStyle = '#060002';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e01622';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.085, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pattern 5: Kakashi / Obito's Mangekyou Sharingan (3 spiraling pinwheel scythes)
+    function drawKakashiMS(ctx, R) {
+      const outerR = R * 0.92;
+      const ringR = R * 0.54;
+
+      // Connecting dark ring
+      ctx.strokeStyle = '#060002';
+      ctx.lineWidth = R * 0.065;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Three sweeping pinwheel scythes curving from outer rim into central pupil
+      ctx.fillStyle = '#060002';
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI * 2) / 3);
+
+        ctx.beginPath();
+        ctx.moveTo(0, -R * 0.14);
+        ctx.bezierCurveTo(
+          R * 0.45,
+          -R * 0.22,
+          R * 0.72,
+          -R * 0.58,
+          R * 0.36,
+          -outerR * 0.94
+        );
+        ctx.bezierCurveTo(
+          R * 0.42,
+          -R * 0.45,
+          R * 0.18,
+          -R * 0.12,
+          0,
+          R * 0.06
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Central pupil with crimson pinpoint
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e01622';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.075, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pattern 6: Sasuke Uchiha's Mangekyou Sharingan (Inverted black-background 6-pointed atomic hexagram)
+    function drawSasukeMS(ctx, R) {
+      // Sasuke's MS uniquely has a mostly black iris with 3 intersecting crimson oval petals
+      ctx.fillStyle = '#070002';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.95, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Three intersecting elongated crimson lenses forming the 6-pointed star
+      ctx.save();
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI) / 3);
+
+        ctx.fillStyle = '#e31724';
+        ctx.beginPath();
+        ctx.moveTo(0, -R * 0.92);
+        ctx.quadraticCurveTo(R * 0.36, 0, 0, R * 0.92);
+        ctx.quadraticCurveTo(-R * 0.36, 0, 0, -R * 0.92);
+        ctx.closePath();
+        ctx.fill();
+
+        // Dark overlap lines for crisp geometric separation
+        ctx.strokeStyle = '#070002';
+        ctx.lineWidth = R * 0.032;
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Central black pupil
+      ctx.fillStyle = '#070002';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pattern 7: Madara Uchiha's Eternal Mangekyou Sharingan (3 looped rings + straight intersecting bars)
+    function drawMadaraEMS(ctx, R) {
+      // Inner dark ring
+      ctx.strokeStyle = '#060002';
+      ctx.lineWidth = R * 0.055;
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.55, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Three Izuna straight bars radiating outward
+      ctx.fillStyle = '#060002';
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI * 2) / 3);
+        ctx.fillRect(-R * 0.055, -R * 0.92, R * 0.11, R * 0.92);
+
+        // Madara's large circular tomoe-loops between the bars
+        ctx.rotate(Math.PI / 3);
+        ctx.beginPath();
+        ctx.arc(0, -R * 0.56, R * 0.19, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hollow crimson center inside each loop
+        ctx.fillStyle = '#e81724';
+        ctx.beginPath();
+        ctx.arc(0, -R * 0.56, R * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#060002';
+
+        ctx.restore();
+      }
+
+      // Central pupil with crimson core
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.21, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e81724';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.09, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pattern 8: Sasuke Uchiha's Eternal Mangekyou Sharingan (Itachi's blades inside Sasuke's hexagram)
+    function drawSasukeEMS(ctx, R) {
+      // Base black background
+      ctx.fillStyle = '#070002';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.95, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sasuke's 3 intersecting crimson star petals
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI) / 3);
+        ctx.fillStyle = '#eb1826';
+        ctx.beginPath();
+        ctx.moveTo(0, -R * 0.92);
+        ctx.quadraticCurveTo(R * 0.36, 0, 0, R * 0.92);
+        ctx.quadraticCurveTo(-R * 0.36, 0, 0, -R * 0.92);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#070002';
+        ctx.lineWidth = R * 0.03;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Itachi's 3 curved black shuriken blades layered inside the center
+      ctx.fillStyle = '#070002';
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI * 2) / 3);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(
+          R * 0.22,
+          -R * 0.26,
+          R * 0.24,
+          -R * 0.62,
+          0,
+          -R * 0.72
+        );
+        ctx.bezierCurveTo(
+          -R * 0.11,
+          -R * 0.48,
+          -R * 0.14,
+          -R * 0.18,
+          0,
+          0
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Central crimson star-core
+      ctx.fillStyle = '#eb1826';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.075, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pattern 9: Rinnegan (Concentric dark ripple rings across lavender iris)
+    function drawRinnegan(ctx, R) {
+      const rings = 6;
+      ctx.strokeStyle = 'rgba(22, 10, 42, 0.85)';
+      for (let i = 1; i <= rings; i++) {
+        const ringR = (R * 0.94 * i) / (rings + 0.4);
+        ctx.lineWidth = Math.max(2.0, R * 0.017);
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Central dark pupil
+      ctx.fillStyle = '#120624';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.11, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pattern 10: Rinne Sharingan (Crimson ripple rings + 9 Tomoe distributed on inner rings)
+    function drawRinneSharingan(ctx, R) {
+      const rings = 5;
+      ctx.strokeStyle = 'rgba(10, 0, 3, 0.88)';
+      for (let i = 1; i <= rings; i++) {
+        const ringR = (R * 0.94 * i) / (rings + 0.35);
+        ctx.lineWidth = Math.max(2.0, R * 0.018);
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Central pupil
+      ctx.fillStyle = '#070002';
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 6 Tomoe on the 2nd ring + 3 Tomoe on the 1st inner ring = 9 Tomoe total
+      const innerRingR = (R * 0.94 * 1.4) / (rings + 0.35);
+      const outerRingR = (R * 0.94 * 2.55) / (rings + 0.35);
+      const tomoeSize = R * 0.056;
+
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+        drawTomoe(ctx, Math.cos(a) * innerRingR, Math.sin(a) * innerRingR, tomoeSize * 0.92, a + Math.PI * 0.58);
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        drawTomoe(ctx, Math.cos(a) * outerRingR, Math.sin(a) * outerRingR, tomoeSize, a + Math.PI * 0.58);
+      }
+    }
+
+    // =========================================================================
+    // 6. MAIN SCENE RENDERING LAYERS
+    // =========================================================================
+    function drawBackgroundChakraRealm(cx, cy, stage) {
+      const [r, g, b] = state.currentRgb;
+
+      // Deep abyssal background gradient
+      const bgGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(width, height) * 0.78);
+      bgGrad.addColorStop(0, `rgba(${Math.round(r * 0.32)}, ${Math.round(g * 0.18)}, ${Math.round(b * 0.25)}, 1)`);
+      bgGrad.addColorStop(0.45, `rgba(${Math.round(r * 0.12)}, ${Math.round(g * 0.05)}, ${Math.round(b * 0.1)}, 1)`);
+      bgGrad.addColorStop(1, '#040106');
+
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Swirling Chakra Aura Rays radiating behind the eye
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.globalCompositeOperation = 'lighter';
+
+      const rayCount = 18;
+      for (let i = 0; i < rayCount; i++) {
+        const baseAngle = (i / rayCount) * Math.PI * 2 + state.time * 0.12;
+        const pulseW = 0.04 + Math.sin(state.time * 2.2 + i * 1.4) * 0.02;
+        const rayLen = Math.max(width, height) * (0.45 + Math.sin(i * 2.1 + state.time) * 0.12);
+
+        const rayGrad = ctx.createRadialGradient(0, 0, 40, 0, 0, rayLen);
+        rayGrad.addColorStop(0, `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, 0.14)`);
+        rayGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.fillStyle = rayGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, rayLen, baseAngle - pulseW, baseAngle + pulseW);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Orbiting Chakra Vortex Rings
+      for (let ring = 0; ring < 3; ring++) {
+        const orbitR = Math.min(width, height) * (0.28 + ring * 0.08);
+        ctx.strokeStyle = `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${0.14 - ring * 0.03})`;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([18 + ring * 12, 24 + ring * 10]);
+        ctx.beginPath();
+        ctx.arc(0, 0, orbitR, state.time * (0.25 - ring * 0.15), state.time * (0.25 - ring * 0.15) + Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      ctx.restore();
+    }
+
+    // Draw the centerpiece hyper-detailed Dojutsu Iris
+    function drawCenterpieceDojutsu(cx, cy, stage) {
+      const baseEyeR = Math.min(width, height) * 0.225;
+      const breathing = 1 + Math.sin(state.time * 2.6) * 0.015;
+      const R = baseEyeR * breathing * state.dilationScale;
+
+      const eyeX = cx + state.lookOffsetX;
+      const eyeY = cy + state.lookOffsetY;
+
+      const [cr, cg, cb] = state.currentRgb;
+
+      ctx.save();
+
+      // 1. Intense Outer Chakra Corona Glow around the Iris
+      ctx.globalCompositeOperation = 'lighter';
+      const coronaGrad = ctx.createRadialGradient(eyeX, eyeY, R * 0.85, eyeX, eyeY, R * 1.85);
+      coronaGrad.addColorStop(0, `rgba(${Math.round(cr)}, ${Math.round(cg)}, ${Math.round(cb)}, 0.58)`);
+      coronaGrad.addColorStop(0.45, `rgba(${Math.round(cr)}, ${Math.round(cg)}, ${Math.round(cb)}, 0.18)`);
+      coronaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = coronaGrad;
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, R * 1.85, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Dark Amaterasu / Chakra Flame Tendrils licking off the outer rim
+      amaterasuFlames.forEach((f, idx) => {
+        const a = f.angle + state.time * 0.35;
+        const flicker = Math.sin(state.time * 6 + f.offset) * 14;
+        const dist = R * 0.98 + Math.abs(flicker) * 0.65;
+        const fx = eyeX + Math.cos(a) * dist;
+        const fy = eyeY + Math.sin(a) * dist;
+        const fSize = f.size * (0.7 + Math.sin(state.time * 5 + idx) * 0.3);
+
+        const flameGrad = ctx.createRadialGradient(fx, fy, 1, fx, fy, fSize);
+        flameGrad.addColorStop(0, `rgba(${Math.round(cr)}, ${Math.round(cg)}, ${Math.round(cb)}, 0.42)`);
+        flameGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = flameGrad;
+        ctx.beginPath();
+        ctx.arc(fx, fy, fSize, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.globalCompositeOperation = 'source-over';
+
+      // 3. Base Iris Radial Gradient (Deep outer limbal ring -> luminous primary iris)
+      const irisGrad = ctx.createRadialGradient(eyeX, eyeY, R * 0.1, eyeX, eyeY, R);
+      irisGrad.addColorStop(0.0, stage.irisHighlight);
+      irisGrad.addColorStop(0.58, stage.irisPrimary);
+      irisGrad.addColorStop(0.88, stage.irisDark);
+      irisGrad.addColorStop(1.0, '#070104');
+
+      ctx.fillStyle = irisGrad;
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, R, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Organic Fibrous Iris Striations (fine radial muscle fibers)
+      ctx.save();
+      ctx.translate(eyeX, eyeY);
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.96, 0, Math.PI * 2);
+      ctx.clip();
+
+      const fiberCount = 120;
+      for (let i = 0; i < fiberCount; i++) {
+        const angle = (i / fiberCount) * Math.PI * 2;
+        const innerStart = R * (0.2 + (i % 5) * 0.03);
+        const outerEnd = R * (0.86 + (i % 3) * 0.04);
+        ctx.strokeStyle =
+          i % 2 === 0
+            ? 'rgba(255, 255, 255, 0.065)'
+            : 'rgba(0, 0, 0, 0.14)';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * innerStart, Math.sin(angle) * innerStart);
+        ctx.lineTo(Math.cos(angle) * outerEnd, Math.sin(angle) * outerEnd);
+        ctx.stroke();
+      }
+
+      // 5. Rotating Dojutsu Pattern Layer (Tomoe / Mangekyou / EMS / Rinnegan)
+      ctx.save();
+      ctx.rotate(state.rotationAngle);
+
+      switch (stage.id) {
+        case 'tomoe1':
+          drawTomoeSharingan(ctx, R, 1);
+          break;
+        case 'tomoe2':
+          drawTomoeSharingan(ctx, R, 2);
+          break;
+        case 'tomoe3':
+          drawTomoeSharingan(ctx, R, 3);
+          break;
+        case 'ms_itachi':
+          drawItachiMS(ctx, R);
+          break;
+        case 'ms_kakashi':
+          drawKakashiMS(ctx, R);
+          break;
+        case 'ms_sasuke':
+          drawSasukeMS(ctx, R);
+          break;
+        case 'ems_madara':
+          drawMadaraEMS(ctx, R);
+          break;
+        case 'ems_sasuke':
+          drawSasukeEMS(ctx, R);
+          break;
+        case 'rinnegan':
+          drawRinnegan(ctx, R);
+          break;
+        case 'rinnesharingan':
+          drawRinneSharingan(ctx, R);
+          break;
+      }
+      ctx.restore();
+
+      // 6. Inner Depth Shadow Ring around the Outer Edge of the Iris
+      const rimShadow = ctx.createRadialGradient(0, 0, R * 0.78, 0, 0, R);
+      rimShadow.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      rimShadow.addColorStop(1, 'rgba(0, 0, 0, 0.72)');
+      ctx.fillStyle = rimShadow;
+      ctx.beginPath();
+      ctx.arc(0, 0, R, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 7. Glossy Anime Corneal Specular Reflections (Top-Left primary catchlight + bottom-right rim glint)
+      ctx.save();
+      ctx.rotate(-0.55);
+      const specGrad = ctx.createLinearGradient(0, -R * 0.75, 0, -R * 0.15);
+      specGrad.addColorStop(0, 'rgba(255, 255, 255, 0.52)');
+      specGrad.addColorStop(1, 'rgba(255, 255, 255, 0.02)');
+      ctx.fillStyle = specGrad;
+      ctx.beginPath();
+      ctx.ellipse(0, -R * 0.48, R * 0.34, R * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Secondary crisp pinpoint reflection
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.beginPath();
+      ctx.arc(-R * 0.24, -R * 0.42, R * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.restore(); // End circular iris clip
+
+      // 8. Crisp Outer Limbal Border Ring
+      ctx.strokeStyle = '#080104';
+      ctx.lineWidth = Math.max(3, R * 0.032);
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, R, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Draw floating chakra embers & expanding shockwaves
+    function drawParticlesAndShockwaves(cx, cy) {
+      const [cr, cg, cb] = state.currentRgb;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // Orbiting & inward-spiraling chakra particles
+      chakraParticles.forEach((p) => {
+        p.angle += p.speed * 0.015;
+        p.dist += p.radialSpeed * (1 + state.spinBoost * 0.18);
+        if (p.dist < 45) {
+          p.dist = Math.max(width, height) * 0.58;
+          p.angle = Math.random() * Math.PI * 2;
+        }
+
+        const px = cx + Math.cos(p.angle) * p.dist;
+        const py = cy + Math.sin(p.angle) * p.dist;
+
+        ctx.fillStyle = `rgba(${Math.round(cr)}, ${Math.round(cg)}, ${Math.round(cb)}, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Expanding click/evolution shockwaves
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.r += sw.speed;
+        sw.alpha *= 0.955;
+        if (sw.alpha <= 0.01 || sw.r > sw.maxR) {
+          shockwaves.splice(i, 1);
+          continue;
+        }
+        ctx.strokeStyle = sw.color;
+        ctx.globalAlpha = sw.alpha;
+        ctx.lineWidth = sw.width * (1 - sw.r / sw.maxR);
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // Dramatic Japanese Kanji & English Title Flash upon Evolution
+    function drawTransformationBanner(cx, cy, stage) {
+      if (state.titleBannerAlpha <= 0.01) return;
+
+      const alpha = Math.min(1, state.titleBannerAlpha);
+      const R = Math.min(width, height) * 0.225;
+      const bannerY = Math.min(height - 115, cy + R + 54);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+
+      // Large Glowing Japanese Kanji
+      ctx.font = `900 ${Math.max(22, Math.round(width * 0.026))}px "Noto Serif JP", serif`;
+      ctx.fillStyle = stage.theme === 'rinnegan' ? '#e5d4ff' : '#ff6b78';
+      ctx.shadowColor = stage.theme === 'rinnegan' ? '#9c6bff' : '#ff1e32';
+      ctx.shadowBlur = 18;
+      ctx.fillText(stage.kanji, cx, bannerY);
+
+      // Subtitle English Name
+      ctx.font = `800 ${Math.max(12, Math.round(width * 0.012))}px "Cinzel", serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 8;
+      ctx.fillText(stage.name, cx, bannerY + 24);
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 7. HUD TELEMETRY & INTERACTIVE STAGE BAR
+    // =========================================================================
+    const infoPanel = document.getElementById('infoPanel');
+    const controlPanel = document.getElementById('controlPanel');
+    const stageBar = document.getElementById('stageBar');
+    const stageCounter = document.getElementById('stageCounter');
+    const classificationBadge = document.getElementById('classificationBadge');
+    const dojutsuTitle = document.getElementById('dojutsuTitle');
+    const dojutsuKanji = document.getElementById('dojutsuKanji');
+    const dojutsuSubtitle = document.getElementById('dojutsuSubtitle');
+
+    // Build the 10 clickable stage pills in the bottom bar
+    const stageButtons = [];
+    DOJUTSU_STAGES.forEach((st, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'stage-pill rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold whitespace-nowrap cursor-pointer';
+      btn.textContent = `${idx + 1}. ${st.shortName}`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setDojutsuStage(idx);
+      });
+      stageBar.appendChild(btn);
+      stageButtons.push(btn);
+    });
+
+    function updateHUD() {
+      const stage = DOJUTSU_STAGES[state.stageIndex];
+      const isRinnegan = stage.theme === 'rinnegan';
+
+      stageCounter.textContent = `STAGE ${String(state.stageIndex + 1).padStart(2, '0')} / ${DOJUTSU_STAGES.length}`;
+      stageCounter.className = `text-[11px] sm:text-xs font-bold tracking-widest ${
+        isRinnegan ? 'text-purple-300' : 'text-red-400'
+      }`;
+
+      classificationBadge.textContent = stage.classification;
+      classificationBadge.className = isRinnegan
+        ? 'text-[10px] px-2 py-0.5 rounded bg-purple-500/25 border border-purple-300/60 text-purple-200 font-bold'
+        : 'text-[10px] px-2 py-0.5 rounded bg-red-500/20 border border-red-400/50 text-red-200 font-bold';
+
+      dojutsuTitle.textContent = stage.name;
+      dojutsuKanji.textContent = stage.kanji;
+      dojutsuKanji.className = `kanji-font text-xs sm:text-sm font-bold ${
+        isRinnegan ? 'text-purple-300' : 'text-red-400'
+      }`;
+      dojutsuSubtitle.textContent = stage.subtitle;
+
+      infoPanel.classList.toggle('rinnegan-theme', isRinnegan);
+      controlPanel.classList.toggle('rinnegan-theme', isRinnegan);
+      stageBar.classList.toggle('rinnegan-theme', isRinnegan);
+
+      stageButtons.forEach((btn, idx) => {
+        const active = idx === state.stageIndex;
+        btn.classList.toggle('active', active);
+        btn.classList.toggle('rinnegan-pill', active && isRinnegan);
+      });
+
+      // Scroll active pill into view on mobile
+      if (stageButtons[state.stageIndex]) {
+        stageButtons[state.stageIndex].scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+      }
+    }
+
+    function updateChakraWave() {
+      const stage = DOJUTSU_STAGES[state.stageIndex];
+      const isRinnegan = stage.theme === 'rinnegan';
+      waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+
+      const midY = waveCanvas.height / 2;
+      waveCtx.strokeStyle = isRinnegan ? '#b993ff' : '#ff3b4e';
+      waveCtx.lineWidth = 1.6;
+      waveCtx.beginPath();
+
+      const amp = 4 + Math.min(9, state.spinBoost * 0.65);
+      for (let x = 0; x < waveCanvas.width; x += 2) {
+        const y =
+          midY +
+          Math.sin(x * 0.11 + state.time * (6 + state.spinBoost)) *
+            amp *
+            Math.sin((x / waveCanvas.width) * Math.PI);
+        if (x === 0) waveCtx.moveTo(x, y);
+        else waveCtx.lineTo(x, y);
+      }
+      waveCtx.stroke();
+    }
+
+    // =========================================================================
+    // 8. MAIN 60FPS ANIMATION LOOP
+    // =========================================================================
+    let lastTime = 0;
+
+    function animate(timestamp) {
+      const dt = Math.min((timestamp - lastTime) / 1000 || 0.016, 0.05);
+      lastTime = timestamp;
+      state.time += dt;
+
+      const stage = DOJUTSU_STAGES[state.stageIndex];
+      const cx = width * 0.5;
+      const cy = height * 0.47;
+
+      // Smoothly interpolate theme RGB colors
+      for (let c = 0; c < 3; c++) {
+        state.currentRgb[c] += (stage.chakraColor[c] - state.currentRgb[c]) * 0.08;
+      }
+
+      // Smooth eye tracking toward pointer
+      const targetOffsetX = ((state.mouseX - cx) / width) * 26;
+      const targetOffsetY = ((state.mouseY - cy) / height) * 20;
+      state.lookOffsetX += (targetOffsetX - state.lookOffsetX) * 0.1;
+      state.lookOffsetY += (targetOffsetY - state.lookOffsetY) * 0.1;
+
+      // Rotational physics (base rotation + spin burst on evolution click)
+      state.rotationAngle += (stage.spinSpeed + state.spinBoost) * dt;
+      state.spinBoost *= 0.91;
+
+      // Dilation & flash decay
+      state.dilationScale += (1.0 - state.dilationScale) * 0.12;
+      state.flashAlpha *= 0.88;
+      state.titleBannerAlpha = Math.max(0, state.titleBannerAlpha - dt * 0.55);
+
+      // Optional Auto-Evolve timer
+      if (state.autoEvolve) {
+        state.autoTimer += dt;
+        if (state.autoTimer >= 3.2) {
+          evolveNext();
+        }
+      }
+
+      // Render layers
+      drawBackgroundChakraRealm(cx, cy, stage);
+      drawParticlesAndShockwaves(cx, cy);
+      drawCenterpieceDojutsu(cx, cy, stage);
+      drawTransformationBanner(cx, cy, stage);
+
+      // Screen flash on transformation
+      if (state.flashAlpha > 0.01) {
+        const [r, g, b] = state.currentRgb;
+        ctx.fillStyle = `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${state.flashAlpha * 0.45})`;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      if (state.hudVisible) {
+        updateChakraWave();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // =========================================================================
+    // 9. EVENT LISTENERS & CONTROLS
+    // =========================================================================
+    const audioBtn = document.getElementById('audioBtn');
+    const autoEvolveBtn = document.getElementById('autoEvolveBtn');
+    const hudToggleBtn = document.getElementById('hudToggleBtn');
+    const hudContainer = document.getElementById('hudContainer');
+
+    // Track cursor / touch movement for subtle iris tracking
+    window.addEventListener('pointermove', (e) => {
+      state.mouseX = e.clientX;
+      state.mouseY = e.clientY;
+    });
+
+    // Click or tap anywhere on the canvas to evolve to the next Dojutsu
+    canvas.addEventListener('pointerdown', (e) => {
+      evolveNext(e.clientX, e.clientY);
+    });
+
+    audioBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const on = audio.toggle();
+      audioBtn.textContent = `SOUND: ${on ? 'ON' : 'OFF'}`;
+      audioBtn.classList.toggle('active', on);
+      if (on) {
+        audio.playSharinganActivation(state.stageIndex);
+      }
+    });
+
+    autoEvolveBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.autoEvolve = !state.autoEvolve;
+      state.autoTimer = 0;
+      autoEvolveBtn.textContent = `AUTO: ${state.autoEvolve ? 'ON' : 'OFF'}`;
+      autoEvolveBtn.classList.toggle('active', state.autoEvolve);
+    });
+
+    hudToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.hudVisible = !state.hudVisible;
+      infoPanel.style.opacity = state.hudVisible ? '1' : '0';
+      stageBar.style.opacity = state.hudVisible ? '1' : '0';
+      document.getElementById('clickPrompt').style.opacity = state.hudVisible ? '1' : '0';
+    });
+
+    // Keyboard shortcuts: Space / Right Arrow -> Next Eye, Left Arrow -> Previous Eye
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        evolveNext();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setDojutsuStage(state.stageIndex - 1);
+      }
+    });
+
+    // Initialize HUD and start loop on window load
+    window.onload = function () {
+      updateHUD();
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>
